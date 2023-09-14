@@ -56,6 +56,8 @@ function handleErrorLogging(
 	}
 }
 
+let cancelEmitter: (type: string) => void | undefined;
+
 interface FlashResults {
 	skip?: boolean;
 	cancelled?: boolean;
@@ -180,6 +182,9 @@ async function performWrite(
 			apiEvents,
 		});
 
+		// TODO: fix this as it's ugly as hell
+		cancelEmitter = (status: string) => emit(status);
+
 		// Now that we know we're connected we can instruct the child process to start the write
 		emit('write', {
 			image,
@@ -207,6 +212,7 @@ export async function flash(
 	}
 
 	await flashState.setFlashingFlag();
+
 	flashState.setDevicePaths(
 		drives.map((d) => d.devicePath).filter((p) => p != null) as string[],
 	);
@@ -222,6 +228,7 @@ export async function flash(
 
 	analytics.logEvent('Flash', analyticsData);
 
+	// start api and call the flasher
 	try {
 		const result = await write(image, drives, flashState.setProgressState);
 		await flashState.unsetFlashingFlag(result);
@@ -230,8 +237,11 @@ export async function flash(
 			cancelled: false,
 			errorCode: error.code,
 		});
+
 		windowProgress.clear();
+
 		const { results = {} } = flashState.getFlashResults();
+
 		const eventData = {
 			...analyticsData,
 			errors: results.errors,
@@ -242,7 +252,9 @@ export async function flash(
 		analytics.logEvent('Write failed', eventData);
 		throw error;
 	}
+
 	windowProgress.clear();
+
 	if (flashState.wasLastFlashCancelled()) {
 		const eventData = {
 			...analyticsData,
@@ -265,6 +277,7 @@ export async function flash(
 
 /**
  * @summary Cancel write operation
+ * //TODO: find a better solution to handle cancellation
  */
 export async function cancel(type: string) {
 	const status = type.toLowerCase();
@@ -279,15 +292,7 @@ export async function cancel(type: string) {
 	};
 	analytics.logEvent('Cancel', analyticsData);
 
-	// Re-enable lock release on inactivity
-
-	try {
-		// @ts-ignore (no Server.sockets in @types/node-ipc)
-		const [socket] = ipc.server.sockets;
-		if (socket !== undefined) {
-			ipc.server.emit(socket, status);
-		}
-	} catch (error: any) {
-		analytics.logException(error);
+	if (cancelEmitter) {
+		cancelEmitter(status);
 	}
 }
