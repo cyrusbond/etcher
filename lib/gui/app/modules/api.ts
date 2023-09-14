@@ -3,6 +3,13 @@
  *  - spawn the child process (privileged or not)
  *  - wait for the child process to connect to the api
  *  - return a promise that will resolve with the emit function for the api
+ *
+ * //TODO:
+ *  - this should be refactored to reverse the control flow:
+ *    - the child process should be the server
+ *    - this should be the client
+ *  - replace the current node-ipc api with a websocket api
+ *  - centralise the api for both the writer and the scanner instead of having two instances running
  */
 
 import * as ipc from 'node-ipc';
@@ -23,8 +30,8 @@ ipc.config.silent = true;
 // There might be multiple Etcher instances running at
 // the same time, therefore we must ensure each IPC
 // server/client has a different name.
-const IPC_SERVER_ID = `etcher-server-${process.pid}`;
-const IPC_CLIENT_ID = `etcher-client-${process.pid}`;
+const IPC_SERVER_ID = `etcher-server-${process.pid}-${Date.now()}}`;
+const IPC_CLIENT_ID = `etcher-client-${process.pid}-${Date.now()}}`;
 
 ipc.config.id = IPC_SERVER_ID;
 ipc.config.socketRoot = path.join(

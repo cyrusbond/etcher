@@ -17,7 +17,14 @@
 import * as electron from 'electron';
 import * as remote from '@electron/remote';
 import * as sdk from 'etcher-sdk';
-import * as _ from 'lodash';
+import {
+	debounce,
+	capitalize,
+	padStart,
+	Dictionary,
+	values,
+	keyBy,
+} from 'lodash';
 import outdent from 'outdent';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -89,7 +96,7 @@ analytics.logEvent('Application start', {
 	version: currentVersion,
 });
 
-const debouncedLog = _.debounce(console.log, 1000, { maxWait: 1000 });
+const debouncedLog = debounce(console.log, 1000, { maxWait: 1000 });
 
 function pluralize(word: string, quantity: number) {
 	return `${quantity} ${word}${quantity === 1 ? '' : 's'}`;
@@ -115,7 +122,7 @@ observe(() => {
 	// might cause some non-sense flashing state logs including
 	// `undefined` values.
 	debouncedLog(outdent({ newline: ' ' })`
-		${_.capitalize(currentFlashState.type)}
+		${capitalize(currentFlashState.type)}
 		${active},
 		${currentFlashState.percentage}%
 		at
@@ -146,7 +153,7 @@ const USB_ID_LENGTH = 4;
  * > '0x0a5c'
  */
 function usbIdToString(id: number): string {
-	return `0x${_.padStart(id.toString(USB_ID_RADIX), USB_ID_LENGTH, '0')}`;
+	return `0x${padStart(id.toString(USB_ID_RADIX), USB_ID_LENGTH, '0')}`;
 }
 
 /**
@@ -162,7 +169,7 @@ const USB_PRODUCT_ID_BCM2710_BOOT = 0x2764;
 /**
  * @summary Compute module descriptions
  */
-const COMPUTE_MODULE_DESCRIPTIONS: _.Dictionary<string> = {
+const COMPUTE_MODULE_DESCRIPTIONS: Dictionary<string> = {
 	[USB_PRODUCT_ID_BCM2708_BOOT]: 'Compute Module 1',
 	[USB_PRODUCT_ID_BCM2710_BOOT]: 'Compute Module 3',
 };
@@ -232,12 +239,12 @@ function prepareDrive(drive: Drive) {
 	}
 }
 
-function setDrives(drives: _.Dictionary<DrivelistDrive>) {
-	availableDrives.setDrives(_.values(drives));
+function setDrives(drives: Dictionary<DrivelistDrive>) {
+	availableDrives.setDrives(values(drives));
 }
 
 function getDrives() {
-	return _.keyBy(availableDrives.getDrives(), 'device');
+	return keyBy(availableDrives.getDrives(), 'device');
 }
 
 async function addDrive(drive: Drive) {
@@ -283,7 +290,7 @@ function updateDriveProgress(
 driveScanner.on('attach', addDrive);
 driveScanner.on('detach', removeDrive);
 
-driveScanner.on('error', (error) => {
+driveScanner.on('error', (error: any) => {
 	// Stop the drive scanning loop in case of errors,
 	// otherwise we risk presenting the same error over
 	// and over again to the user, while also heavily

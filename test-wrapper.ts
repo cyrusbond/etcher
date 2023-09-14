@@ -11,10 +11,10 @@ import * as path from 'path';
 import * as packageJSON from './package.json';
 import * as permissions from './lib/shared/permissions';
 
-if (process.argv.length !== 3) {
-	console.error('Expects an image to flash as only arg!');
-	process.exit(1);
-}
+// if (process.argv.length !== 3) {
+// 	console.error('Expects an image to flash as only arg!');
+// 	process.exit(1);
+// }
 
 const THREADS_PER_CPU = 16;
 
@@ -85,60 +85,65 @@ async function start(): Promise<any> {
 			console.log('progress', progress);
 		});
 
+		ipc.server.on('drives', (drives) => {
+			console.log('drives', drives);
+		});
+
 		ipc.server.on('ready', (_data, socket) => {
 			console.log('ready');
+			ipc.server.emit(socket, 'scan', {});
 			// ipc.server.emit(socket, "hello", { message: "world" });
-			ipc.server.emit(socket, 'write', {
-				image: {
-					path: process.argv[2],
-					displayName: 'Random image for test',
-					description: 'Random image for test',
-					SourceType: 'File',
-				},
-				destinations: [
-					{
-						size: 15938355200,
-						isVirtual: false,
-						enumerator: 'DiskArbitration',
-						logicalBlockSize: 512,
-						raw: '/dev/rdisk4',
-						error: null,
-						isReadOnly: false,
-						displayName: '/dev/disk4',
-						blockSize: 512,
-						isSCSI: false,
-						isRemovable: true,
-						device: '/dev/disk4',
-						busVersion: null,
-						isSystem: false,
-						busType: 'USB',
-						isCard: false,
-						isUSB: true,
-						devicePath:
-							'IODeviceTree:/arm-io@10F00000/usb-drd1@2280000/usb-drd1-port-hs@01100000',
-						mountpoints: [
-							{
-								path: '/Volumes/flash-rootB',
-								label: 'flash-rootB',
-							},
-							{
-								path: '/Volumes/flash-rootA',
-								label: 'flash-rootA',
-							},
-							{
-								path: '/Volumes/flash-boot',
-								label: 'flash-boot',
-							},
-						],
-						description: 'Generic Flash Disk Media',
-						isUAS: null,
-						partitionTableType: 'mbr',
-					},
-				],
-				SourceType: 'File',
-				autoBlockmapping: true,
-				decompressFirst: true,
-			});
+			// ipc.server.emit(socket, "write", {
+			// 	image: {
+			// 		path: process.argv[2],
+			// 		displayName: "Random image for test",
+			// 		description: "Random image for test",
+			// 		SourceType: "File",
+			// 	},
+			// 	destinations: [
+			// 		{
+			// 			size: 15938355200,
+			// 			isVirtual: false,
+			// 			enumerator: "DiskArbitration",
+			// 			logicalBlockSize: 512,
+			// 			raw: "/dev/rdisk4",
+			// 			error: null,
+			// 			isReadOnly: false,
+			// 			displayName: "/dev/disk4",
+			// 			blockSize: 512,
+			// 			isSCSI: false,
+			// 			isRemovable: true,
+			// 			device: "/dev/disk4",
+			// 			busVersion: null,
+			// 			isSystem: false,
+			// 			busType: "USB",
+			// 			isCard: false,
+			// 			isUSB: true,
+			// 			devicePath:
+			// 				"IODeviceTree:/arm-io@10F00000/usb-drd1@2280000/usb-drd1-port-hs@01100000",
+			// 			mountpoints: [
+			// 				{
+			// 					path: "/Volumes/flash-rootB",
+			// 					label: "flash-rootB",
+			// 				},
+			// 				{
+			// 					path: "/Volumes/flash-rootA",
+			// 					label: "flash-rootA",
+			// 				},
+			// 				{
+			// 					path: "/Volumes/flash-boot",
+			// 					label: "flash-boot",
+			// 				},
+			// 			],
+			// 			description: "Generic Flash Disk Media",
+			// 			isUAS: null,
+			// 			partitionTableType: "mbr",
+			// 		},
+			// 	],
+			// 	SourceType: "File",
+			// 	autoBlockmapping: true,
+			// 	decompressFirst: true,
+			// });
 		});
 
 		const argv = writerArgv();

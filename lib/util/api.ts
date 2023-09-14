@@ -19,12 +19,12 @@ import * as ipc from 'node-ipc';
 import { toJSON } from '../shared/errors';
 import { GENERAL_ERROR, SUCCESS } from '../shared/exit-codes';
 import { delay } from '../shared/utils';
-
-import { write, cleanup } from './child-writer';
-
 import { WriteOptions } from './types/types';
-
 import { MultiDestinationProgress } from 'etcher-sdk/build/multi-write';
+import { write, cleanup } from './child-writer';
+import { startScanning } from './scanner';
+import { DrivelistDrive } from '../shared/drive-constraints';
+import { Dictionary, values } from 'lodash';
 
 console.log('starting api');
 
@@ -65,7 +65,7 @@ function log(message: string) {
 }
 
 /**
- * @summary Terminate the child writer process
+ * @summary Terminate the child process
  */
 async function terminate(exitCode: number) {
 	if (console?.log) {
@@ -110,9 +110,6 @@ ipc.connectTo(IPC_SERVER_ID, () => {
 		console.log('connected to IPC server');
 	}
 
-	// Remove leftover tmp files older than 1 hour
-	cleanup(Date.now() - 60 * 60 * 1000);
-
 	// Gracefully exit on the following cases. If the parent
 	// process detects that child exit successfully but
 	// no flashing information is available, then it will
@@ -138,8 +135,15 @@ ipc.connectTo(IPC_SERVER_ID, () => {
 		await terminate(SUCCESS);
 	});
 
+	ipc.of[IPC_SERVER_ID].on('scan', async () => {
+		startScanning();
+	});
+
 	// write handler
 	ipc.of[IPC_SERVER_ID].on('write', async (options: WriteOptions) => {
+		// Remove leftover tmp files older than 1 hour
+		cleanup(Date.now() - 60 * 60 * 1000);
+
 		let exitCode = SUCCESS;
 
 		ipc.of[IPC_SERVER_ID].on('cancel', () => onAbort(exitCode));
@@ -180,4 +184,8 @@ function emitFail(data: any) {
 	emit('fail', data);
 }
 
-export { emitLog, emitState, emitFail };
+function emitDrives(drives: Dictionary<DrivelistDrive>) {
+	emit('drives', JSON.stringify(values(drives)));
+}
+
+export { emitLog, emitState, emitFail, emitDrives };
