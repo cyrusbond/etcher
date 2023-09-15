@@ -110,9 +110,11 @@ function terminateServer(server: any) {
 function startApiAndSpawnChild({
 	apiEvents,
 	apiEventHandler,
+	withPrivileges,
 }: {
 	apiEvents: string[];
 	apiEventHandler: any;
+	withPrivileges: boolean;
 }): Promise<any> {
 	return new Promise((resolve, reject) => {
 		ipc.serve();
@@ -147,7 +149,7 @@ function startApiAndSpawnChild({
 		// when the api is started we spawn the child process
 		ipc.server.on('start', async () => {
 			try {
-				const results = await spawnChild({ withPrivileges: true });
+				const results = await spawnChild({ withPrivileges });
 				// this will happen if the child is spawned withPrivileges and privileges has been rejected
 				if (results.cancelled) {
 					reject();

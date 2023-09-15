@@ -176,10 +176,11 @@ async function performWrite(
 			}
 		};
 
-		// Spawn the child process and wait for the connection to be made
+		// Spawn the child process with privileges and wait for the connection to be made
 		const { emit, terminateServer } = await startApiAndSpawnChild({
 			apiEventHandler,
 			apiEvents,
+			withPrivileges: true,
 		});
 
 		// TODO: fix this as it's ugly as hell
