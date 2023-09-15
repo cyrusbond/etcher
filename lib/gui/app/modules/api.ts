@@ -27,18 +27,6 @@ const THREADS_PER_CPU = 16;
 // the stdout maxBuffer size to be exceeded when flashing
 ipc.config.silent = true;
 
-// There might be multiple Etcher instances running at
-// the same time, therefore we must ensure each IPC
-// server/client has a different name.
-const IPC_SERVER_ID = `etcher-server-${process.pid}-${Date.now()}}`;
-const IPC_CLIENT_ID = `etcher-client-${process.pid}-${Date.now()}}`;
-
-ipc.config.id = IPC_SERVER_ID;
-ipc.config.socketRoot = path.join(
-	process.env.XDG_RUNTIME_DIR || os.tmpdir(),
-	path.sep,
-);
-
 function writerArgv(): string[] {
 	let entryPoint = path.join(getAppPath(), 'generated', 'etcher-util');
 	// AppImages run over FUSE, so the files inside the mount point
@@ -58,12 +46,15 @@ function writerArgv(): string[] {
 	}
 }
 
-function writerEnv() {
+function writerEnv(
+	IPC_CLIENT_ID: string,
+	IPC_SERVER_ID: string,
+	IPC_SOCKET_ROOT: string,
+) {
 	return {
 		IPC_SERVER_ID,
 		IPC_CLIENT_ID,
-		IPC_SOCKET_ROOT: ipc.config.socketRoot,
-		ELECTRON_RUN_AS_NODE: '1',
+		IPC_SOCKET_ROOT,
 		UV_THREADPOOL_SIZE: (os.cpus().length * THREADS_PER_CPU).toString(),
 		// This environment variable prevents the AppImages
 		// desktop integration script from presenting the
@@ -73,14 +64,24 @@ function writerEnv() {
 	};
 }
 
-async function spawnChild({ withPrivileges }: { withPrivileges: boolean }) {
+async function spawnChild({
+	withPrivileges,
+	IPC_CLIENT_ID,
+	IPC_SERVER_ID,
+	IPC_SOCKET_ROOT,
+}: {
+	withPrivileges: boolean;
+	IPC_CLIENT_ID: string;
+	IPC_SERVER_ID: string;
+	IPC_SOCKET_ROOT: string;
+}) {
 	const argv = writerArgv();
 	console.log(
 		`Spawning command ${
 			withPrivileges ? 'with privileges' : 'without privileges'
 		}: ${argv.join(' ')}`,
 	);
-	const env = writerEnv();
+	const env = writerEnv(IPC_CLIENT_ID, IPC_SERVER_ID, IPC_SOCKET_ROOT);
 	if (withPrivileges) {
 		return await permissions.elevateCommand(argv, {
 			applicationName: packageJSON.displayName,
@@ -116,6 +117,24 @@ function startApiAndSpawnChild({
 	apiEventHandler: any;
 	withPrivileges: boolean;
 }): Promise<any> {
+	// There might be multiple Etcher instances running at
+	// the same time, also we might spawn multiple child and api so we must ensure each IPC
+	// server/client has a different name.
+	const IPC_SERVER_ID = `etcher-server-${
+		process.pid
+	}-${Date.now()}-${Math.random()}}`;
+	const IPC_CLIENT_ID = `etcher-client-${
+		process.pid
+	}-${Date.now()}-${Math.random()}}`;
+
+	const IPC_SOCKET_ROOT = path.join(
+		process.env.XDG_RUNTIME_DIR || os.tmpdir(),
+		path.sep,
+	);
+
+	ipc.config.id = IPC_SERVER_ID;
+	ipc.config.socketRoot = IPC_SOCKET_ROOT;
+
 	return new Promise((resolve, reject) => {
 		ipc.serve();
 
@@ -149,7 +168,12 @@ function startApiAndSpawnChild({
 		// when the api is started we spawn the child process
 		ipc.server.on('start', async () => {
 			try {
-				const results = await spawnChild({ withPrivileges });
+				const results = await spawnChild({
+					withPrivileges,
+					IPC_CLIENT_ID,
+					IPC_SERVER_ID,
+					IPC_SOCKET_ROOT,
+				});
 				// this will happen if the child is spawned withPrivileges and privileges has been rejected
 				if (results.cancelled) {
 					reject();
