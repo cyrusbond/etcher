@@ -54,6 +54,8 @@ const Icon = styled(BaseIcon)`
 function getDrivesTitle() {
 	const drives = selectionState.getSelectedDrives();
 
+	console.log(drives);
+
 	if (drives.length === 1) {
 		return drives[0].description || 'Untitled Device';
 	}

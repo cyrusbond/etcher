@@ -52,6 +52,7 @@ export function selectSource(source: SourceMetadata) {
  * @summary Get all selected drives' devices
  */
 export function getSelectedDevices(): string[] {
+	console.log('fullState', store.getState());
 	return store.getState().getIn(['selection', 'devices']).toJS();
 }
 

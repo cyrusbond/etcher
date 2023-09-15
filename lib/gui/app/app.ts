@@ -16,7 +16,7 @@
 
 import * as electron from 'electron';
 import * as remote from '@electron/remote';
-import { debounce, capitalize, Dictionary, values, keyBy } from 'lodash';
+import { debounce, capitalize, Dictionary, values } from 'lodash';
 import outdent from 'outdent';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -127,7 +127,10 @@ observe(() => {
 });
 
 function setDrives(drives: Dictionary<DrivelistDrive>) {
-	availableDrives.setDrives(values(drives));
+	// prevent setting drives while flashing otherwise we might lose some while we unmount them
+	if (!flashState.isFlashing()) {
+		availableDrives.setDrives(values(drives));
+	}
 }
 
 // Spwaning the child process without privileges to get the drives list
