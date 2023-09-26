@@ -38,7 +38,6 @@ async function addDrive(drive: Drive) {
 	const drives = getDrives();
 	drives[preparedDrive.device] = preparedDrive;
 
-	console.log('addDrive', drive.raw);
 	setDrives(drives);
 }
 

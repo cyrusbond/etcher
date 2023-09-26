@@ -109,23 +109,19 @@ function terminateServer(server: any) {
 
 // TODO: replace the custom ipc events by one generic "message" for all communication with the backend
 function startApiAndSpawnChild({
-	apiEvents,
-	apiEventHandler,
 	withPrivileges,
 }: {
-	apiEvents: string[];
-	apiEventHandler: any;
 	withPrivileges: boolean;
 }): Promise<any> {
 	// There might be multiple Etcher instances running at
 	// the same time, also we might spawn multiple child and api so we must ensure each IPC
 	// server/client has a different name.
-	const IPC_SERVER_ID = `etcher-server-${
-		process.pid
-	}-${Date.now()}-${Math.random()}}`;
-	const IPC_CLIENT_ID = `etcher-client-${
-		process.pid
-	}-${Date.now()}-${Math.random()}}`;
+	const IPC_SERVER_ID = `etcher-server-${process.pid}-${Date.now()}-${
+		withPrivileges ? 'privileged' : 'unprivileged'
+	}}}`;
+	const IPC_CLIENT_ID = `etcher-client-${process.pid}-${Date.now()}-${
+		withPrivileges ? 'privileged' : 'unprivileged'
+	}}`;
 
 	const IPC_SOCKET_ROOT = path.join(
 		process.env.XDG_RUNTIME_DIR || os.tmpdir(),
@@ -143,19 +139,21 @@ function startApiAndSpawnChild({
 			console.log(message);
 		});
 
+		// api to register more handlers with callbacks
+		const registerHandler = (event: string, handler: any) => {
+			ipc.server.on(event, handler);
+		};
+
 		// once api is ready (means child process is connected) we pass the emit and terminate function to the caller
 		ipc.server.on('ready', (_: any, socket) => {
 			const emit = (channel: string, data: any) => {
 				ipc.server.emit(socket, channel, data);
 			};
-			resolve({ emit, terminateServer: () => terminateServer(ipc.server) });
-		});
-
-		// register all the api events we want to track, they will be handled by the apiEventHandler
-		apiEvents.forEach((event) => {
-			ipc.server.on(event, (payload) =>
-				apiEventHandler({ type: event, payload }),
-			);
+			resolve({
+				emit,
+				terminateServer: () => terminateServer(ipc.server),
+				registerHandler,
+			});
 		});
 
 		// on api error we terminate
@@ -174,6 +172,7 @@ function startApiAndSpawnChild({
 					IPC_SERVER_ID,
 					IPC_SOCKET_ROOT,
 				});
+				console.log('Child process started', IPC_SERVER_ID);
 				// this will happen if the child is spawned withPrivileges and privileges has been rejected
 				if (results.cancelled) {
 					reject();

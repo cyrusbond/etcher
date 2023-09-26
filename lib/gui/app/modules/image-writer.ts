@@ -25,6 +25,7 @@ import * as settings from '../models/settings';
 import * as analytics from '../modules/analytics';
 import * as windowProgress from '../os/window-progress';
 import { startApiAndSpawnChild } from './api';
+import { terminateScanningServer } from '../app';
 
 /**
  * @summary Handle a flash error and log it to analytics
@@ -150,50 +151,30 @@ async function performWrite(
 			resolve(flashResults);
 		};
 
-		// list api events we want to track and a generic handler to track them
-		const apiEvents = ['fail', 'done', 'abort', 'skip', 'state'];
-		const apiEventHandler = (event: any) => {
-			switch (event.type) {
-				case 'state':
-					onProgress(event.payload);
-					// this is the only event we don't want to terminate the server on
-					return;
-				case 'fail':
-					onFail(event.payload);
-					break;
-				case 'done':
-					onDone(event.payload);
-					break;
-				case 'abort':
-					onAbort();
-					break;
-				case 'skip':
-					onSkip();
-					break;
-				default:
-					console.log('Unknown event type', event.type);
-					return;
-			}
-		};
-
 		// Spawn the child process with privileges and wait for the connection to be made
-		const { emit, terminateServer } = await startApiAndSpawnChild({
-			apiEventHandler,
-			apiEvents,
-			withPrivileges: true,
-		});
+		const { emit, registerHandler, terminateServer } =
+			await startApiAndSpawnChild({
+				withPrivileges: true,
+			});
 
-		// TODO: fix this as it's ugly as hell
-		cancelEmitter = (status: string) => emit(status);
+		registerHandler('state', onProgress);
+		registerHandler('fail', onFail);
+		registerHandler('done', onDone);
+		registerHandler('abort', onAbort);
+		registerHandler('skip', onSkip);
+
+		cancelEmitter = (cancelStatus: string) => emit(cancelStatus);
 
 		// Now that we know we're connected we can instruct the child process to start the write
-		emit('write', {
+		const paramaters = {
 			image,
 			destinations: drives,
-			SourceType: image.SourceType.name,
+			SourceType: image.SourceType,
 			autoBlockmapping,
 			decompressFirst,
-		});
+		};
+		console.log('params', paramaters);
+		emit('write', paramaters);
 	});
 
 	// The process continue in the event handler

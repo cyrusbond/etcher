@@ -23,6 +23,7 @@ import { WriteOptions } from './types/types';
 import { MultiDestinationProgress } from 'etcher-sdk/build/multi-write';
 import { write, cleanup } from './child-writer';
 import { startScanning } from './scanner';
+import { getSourceMetadata } from './source-metadata';
 import { DrivelistDrive } from '../shared/drive-constraints';
 import { Dictionary, values } from 'lodash';
 
@@ -135,6 +136,22 @@ ipc.connectTo(IPC_SERVER_ID, () => {
 		await terminate(SUCCESS);
 	});
 
+	ipc.of[IPC_SERVER_ID].on('sourceMetadata', async (params) => {
+		log(`sourceMetadata backend ${params}`);
+		const { selected, SourceType, auth } = JSON.parse(params);
+		try {
+			const sourceMatadata = await getSourceMetadata(
+				selected,
+				SourceType,
+				auth,
+			);
+			log(`will response backend ${sourceMatadata}`);
+			emitSourceMetadata(sourceMatadata);
+		} catch (error: any) {
+			emitFail(error);
+		}
+	});
+
 	ipc.of[IPC_SERVER_ID].on('scan', async () => {
 		startScanning();
 	});
@@ -188,4 +205,8 @@ function emitDrives(drives: Dictionary<DrivelistDrive>) {
 	emit('drives', JSON.stringify(values(drives)));
 }
 
-export { emitLog, emitState, emitFail, emitDrives };
+function emitSourceMetadata(sourceMetadata: any) {
+	emit('sourceMetadata', JSON.stringify(sourceMetadata));
+}
+
+export { emitLog, emitState, emitFail, emitDrives, emitSourceMetadata };

@@ -2,10 +2,7 @@ import { GPTPartition, MBRPartition } from 'partitioninfo';
 import { sourceDestination } from 'etcher-sdk';
 import { DrivelistDrive } from '../drive-constraints';
 
-export type Source =
-	| typeof sourceDestination.File
-	| typeof sourceDestination.BlockDevice
-	| typeof sourceDestination.Http;
+export type Source = 'File' | 'BlockDevice' | 'Http';
 
 export interface SourceMetadata extends sourceDestination.Metadata {
 	hasMBR?: boolean;

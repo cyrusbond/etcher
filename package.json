@@ -50,6 +50,7 @@
   "author": "Balena Ltd. <hello@balena.io>",
   "license": "Apache-2.0",
   "devDependencies": {
+    "@babel/register": "^7.22.15",
     "@balena/lint": "5.4.2",
     "@balena/sudo-prompt": "9.2.1-workaround-windows-amperstand-in-username-0849e215b947987a643fe5763902aea201255534",
     "@electron/remote": "^2.0.9",

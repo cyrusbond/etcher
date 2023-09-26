@@ -38,6 +38,8 @@ import * as windowProgress from './os/window-progress';
 import MainPage from './pages/main/MainPage';
 import './css/main.css';
 import * as i18next from 'i18next';
+import { promises } from 'dns';
+import { SourceMetadata } from '../../shared/typings/source-selector';
 
 window.addEventListener(
 	'unhandledrejection',
@@ -134,25 +136,33 @@ function setDrives(drives: Dictionary<DrivelistDrive>) {
 }
 
 // Spwaning the child process without privileges to get the drives list
-const apiEventHandler = (event: any) => {
-	switch (event.type) {
-		case 'drives':
-			setDrives(JSON.parse(event.payload));
-			break;
-		default:
-			console.log('Unknown event type', event.type);
-			break;
-	}
-};
+// TODO: clean up this mess of exports
+export let requestMetadata: any;
+export let stopScanning: any;
 
-const apiEvents = ['drives'];
-
+// start the api and spawn the child process
 startApiAndSpawnChild({
-	apiEventHandler,
-	apiEvents,
 	withPrivileges: false,
-}).then(({ emit }) => {
+}).then(({ emit, registerHandler, terminateServer }) => {
+	// start scanning
 	emit('scan');
+
+	// make the sourceMetada awaitable to be used on source selection
+	requestMetadata = async (params: any): Promise<SourceMetadata> => {
+		emit('sourceMetadata', JSON.stringify(params));
+
+		return new Promise((resolve) =>
+			registerHandler('sourceMetadata', (data: any) => {
+				resolve(JSON.parse(data));
+			}),
+		);
+	};
+
+	stopScanning = stopScanning;
+
+	registerHandler('drives', (data: any) => {
+		setDrives(JSON.parse(data));
+	});
 });
 
 let popupExists = false;
