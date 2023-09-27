@@ -1,6 +1,6 @@
 {
   "assets": [
-    "node_modules/usb/prebuilds/**/node.napi.node",
+    "node_modules/usb/**",
     "node_modules/lzma-native/**",
     "node_modules/drivelist/build/Release/drivelist.node",
     "node_modules/mountutils/Release/**"
