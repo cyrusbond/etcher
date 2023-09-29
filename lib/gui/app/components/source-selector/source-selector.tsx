@@ -423,7 +423,12 @@ export class SourceSelector extends React.Component<
 						// this will send an event down the ipcMain asking for metadata
 						// we'll get the response through an event
 
-						console.log('--> will request metadata');
+						console.log(
+							'--> will request metadata',
+							selected,
+							SourceType,
+							auth,
+						);
 						metadata = await requestMetadata({ selected, SourceType, auth });
 						console.log('--> got metadata', metadata);
 

@@ -138,15 +138,15 @@ function setDrives(drives: Dictionary<DrivelistDrive>) {
 // Spwaning the child process without privileges to get the drives list
 // TODO: clean up this mess of exports
 export let requestMetadata: any;
-export let stopScanning: any;
 
 // start the api and spawn the child process
 startApiAndSpawnChild({
 	withPrivileges: false,
-}).then(({ emit, registerHandler, terminateServer }) => {
+}).then(({ emit, registerHandler }) => {
 	// start scanning
 	emit('scan');
 
+	console.log('then we set requestMetadata and stopScanning');
 	// make the sourceMetada awaitable to be used on source selection
 	requestMetadata = async (params: any): Promise<SourceMetadata> => {
 		emit('sourceMetadata', JSON.stringify(params));
@@ -157,8 +157,6 @@ startApiAndSpawnChild({
 			}),
 		);
 	};
-
-	stopScanning = stopScanning;
 
 	registerHandler('drives', (data: any) => {
 		setDrives(JSON.parse(data));
